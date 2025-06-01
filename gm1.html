@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Good Morning Ladybug</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      transition: background 1s linear;
+    }
+
+    body {
+      background: linear-gradient(to top, #120318, #000814);
+    }
+
+    .sky-object {
+      position: absolute;
+      top: 15vh;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      opacity: 1;
+    }
+
+    .sun {
+      background: radial-gradient(circle, #fff799, #fdd835);
+      box-shadow: 0 0 50px 10px #fdd83588;
+    }
+
+    .moon {
+      background: radial-gradient(circle, #f0f8ff, #b0c4de);
+      box-shadow: 0 0 30px 5px #cfe4fcaa;
+    }
+
+    .stars {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 2s ease-in-out;
+    }
+
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: white;
+      border-radius: 50%;
+    }
+
+    .greeting {
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      text-align: center;
+      font-family: 'Akaya Telivigala', cursive, sans-serif;
+      z-index: 2;
+      padding: 0.6em;
+      background: rgba(255, 240, 245, 0.25);
+      border: 4px dotted #ff69b4;
+      border-radius: 20px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 25px rgba(255, 105, 180, 0.6);
+    }
+
+    .greeting .headline {
+      font-size: 3rem;
+      font-family: 'Montez', cursive,;
+      font-weight: bold;
+      color: #ff4fa3;
+      text-shadow: 2px 2px 4px #ffb6c1;
+      margin-bottom: 0.5em;
+    }
+
+    .greeting .message {
+      font-size: 22px;
+      color: #9d28cc;
+      text-shadow: 2px 2px 2px #aaa;
+      font-family: 'Akaya Kanadaka', cursive;
+      font-style: normal;
+    }
+
+    .heart {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: pink;
+      transform: rotate(45deg);
+      animation: floatHeart 6s linear infinite;
+      opacity: 0.7;
+    }
+
+    .heart::before,
+    .heart::after {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: pink;
+      border-radius: 50%;
+    }
+
+    .heart::before {
+      top: -10px;
+      left: 0;
+    }
+
+    .heart::after {
+      top: 0;
+      left: -10px;
+    }
+
+    @keyframes floatHeart {
+      0% {
+        transform: translateY(0) rotate(45deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100vh) rotate(45deg);
+        opacity: 0;
+      }
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Akaya Telivigala" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Akaya Kanadaka" rel="stylesheet">
+</head>
+<body>
+  <div class="greeting">
+    <div class="headline">Good Morning, Ladybug</div>
+    <div class="message">
+      Rise and shine, my sleepy dove,<br>
+      Start your day with all my love.💖<br>
+      My Baby, you rule my heart,<br>
+      Even when we’re miles apart. 💫
+    </div>
+  </div>
+
+  <div class="sky-object sun" id="skyObject"></div>
+  <div class="stars" id="stars"></div>
+
+  <script>
+    const skyObject = document.getElementById("skyObject");
+    const starsContainer = document.getElementById("stars");
+    let isSun = true;
+
+    const sunPhases = [
+      { stop: 0.0, color: "#ff758f" },
+      { stop: 0.5, color: "#ace0f9" },
+      { stop: 1.0, color: "#ff9e00" }
+    ];
+
+    const moonPhases = [
+      { stop: 0.0, color: "#ff9e00" },
+      { stop: 0.33, color: "#1a1a40" },
+      { stop: 0.66, color: "#000015" },
+      { stop: 1.0, color: "#ff758f" }
+    ];
+
+    function lerpColor(color1, color2, t) {
+      const c1 = parseInt(color1.slice(1), 16);
+      const c2 = parseInt(color2.slice(1), 16);
+
+      const r1 = (c1 >> 16) & 0xff;
+      const g1 = (c1 >> 8) & 0xff;
+      const b1 = c1 & 0xff;
+
+      const r2 = (c2 >> 16) & 0xff;
+      const g2 = (c2 >> 8) & 0xff;
+      const b2 = c2 & 0xff;
+
+      const r = Math.round(r1 + (r2 - r1) * t);
+      const g = Math.round(g1 + (g2 - g1) * t);
+      const b = Math.round(b1 + (b2 - b1) * t);
+
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    function getPhaseData(progress) {
+      const phases = isSun ? sunPhases : moonPhases;
+
+      for (let i = 0; i < phases.length - 1; i++) {
+        const start = phases[i];
+        const end = phases[i + 1];
+        if (progress >= start.stop && progress <= end.stop) {
+          const localT = (progress - start.stop) / (end.stop - start.stop);
+          const color = lerpColor(start.color, end.color, localT);
+          const stars = !isSun;
+          return { color, stars };
+        }
+      }
+
+      return {
+        color: phases[phases.length - 1].color,
+        stars: !isSun
+      };
+    }
+
+    function updateStars(show) {
+      starsContainer.style.opacity = show ? 1 : 0;
+    }
+
+    function createStars(count = 100) {
+      for (let i = 0; i < count; i++) {
+        const star = document.createElement("div");
+        star.className = "star";
+        star.style.left = `${Math.random() * 100}%`;
+        star.style.top = `${Math.random() * 100}%`;
+        star.style.opacity = Math.random();
+        star.style.transform = `scale(${Math.random() * 1.5})`;
+        starsContainer.appendChild(star);
+      }
+    }
+
+    function createHearts(count = 30) {
+      for (let i = 0; i < count; i++) {
+        const heart = document.createElement("div");
+        heart.className = "heart";
+        heart.style.left = `${Math.random() * 100}%`;
+        heart.style.bottom = "0";
+        heart.style.animationDelay = `${Math.random() * 5}s`;
+        document.body.appendChild(heart);
+      }
+    }
+
+    function animateObject() {
+      const duration = 10000;
+      const startTime = performance.now();
+      const screenWidth = window.innerWidth;
+
+      function step(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const x = progress * screenWidth;
+        skyObject.style.transform = `translateX(${x - 40}px)`;
+
+        const { color, stars } = getPhaseData(progress);
+        document.body.style.background = `linear-gradient(to top, ${color}, #ffffff10)`;
+        updateStars(stars);
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          isSun = !isSun;
+          skyObject.className = `sky-object ${isSun ? 'sun' : 'moon'}`;
+          animateObject();
+        }
+      }
+
+      requestAnimationFrame(step);
+    }
+
+    function init() {
+      createStars();
+      createHearts();
+      animateObject();
+      document.body.removeEventListener('click', init);
+    }
+
+    document.body.addEventListener('click', init);
+  </script>
+</body>
+</html>
