@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Floating Boats</title>
+    <style>
+      html, body {
+        background: linear-gradient(to bottom, #a0d8ef, #50a6c8);
+        background-size: 400% 400%;
+        
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: sans-serif;
+        height: 100vh;
+        width: 100vw;
+        position: relative;
+      }
+
+     
+      
+      .main-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100vh; /* Full viewport height */
+  text-align: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+      canvas {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 0;
+      }
+
+      .message {
+  position: absolute;
+  z-index: 10;
+  top: 10px;
+  right: 20px;
+  font-size: 1.2em;
+  max-width: 90vw;
+  color: #3ec021;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #000;
+  font-family: "Lugrasimo";
+  pointer-events: none; /* <-- Add this line */
+}
+
+.greeting {
+  position: absolute;
+  font-family: "Lugrasimo", cursive;
+  bottom: 10vh;
+  z-index: 10;
+  left: 20px;
+  font-size: 1.4em;
+  max-width: 90vw;
+  color: #3ec021;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #000;
+  pointer-events: none; /* <-- Add this line */
+}
+
+
+      .reflection-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: radial-gradient(
+          circle at 50% 50%,
+          rgba(255, 255, 255, 0.06),
+          transparent 60%
+        );
+        animation: shimmer 8s linear infinite;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      @keyframes shimmer {
+        0% {
+          transform: translate(-25%, -25%) scale(1);
+        }
+        50% {
+          transform: translate(0%, 0%) scale(1.05);
+        }
+        100% {
+          transform: translate(-25%, -25%) scale(1);
+        }
+      }
+
+      .water-shimmer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        background: repeating-radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.03) 0%,
+          transparent 30%
+        );
+        opacity: 0.25;
+        z-index: 2;
+        mix-blend-mode: soft-light;
+      }
+
+      .layer1 {
+        animation: shimmer1 18s linear infinite;
+      }
+
+      .layer2 {
+        animation: shimmer2 25s linear infinite;
+        opacity: 0.15;
+      }
+
+      @keyframes shimmer1 {
+        0% {
+          transform: translate(0, 0) scale(1.1);
+        }
+        50% {
+          transform: translate(-10%, -5%) scale(1.15);
+        }
+        100% {
+          transform: translate(0, 0) scale(1.1);
+        }
+      }
+
+      @keyframes shimmer2 {
+        0% {
+          transform: translate(5%, -5%) scale(1.2);
+        }
+        50% {
+          transform: translate(-5%, 10%) scale(1.25);
+        }
+        100% {
+          transform: translate(5%, -5%) scale(1.2);
+        }
+      }
+      
+      @media (max-width: 600px) {
+  .greeting-text {
+    font-size: 1.2rem;
+  }
+}
+
+    </style>
+   
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lugrasimo&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="message">
+      Good morning, my darling,<br />
+      let our love take flight,<br />
+      Like boats on calm waters,<br />
+      in morning’s light.
+    </div>
+    <div class="greeting">
+      From dawn until dusk,<br />
+      in ur arms I’ll stay,<br />
+      You’re my forever,<br />
+      my night and my day.
+    </div>
+    <canvas id="waterCanvas"></canvas>
+
+    <div class="water-shimmer layer1"></div>
+    <div class="water-shimmer layer2"></div>
+
+    <script>
+      const canvas = document.getElementById("waterCanvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      window.addEventListener("resize", () => {
+        function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  canvas.style.width = window.innerWidth + "px";
+  canvas.style.height = window.innerHeight + "px";
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+  ctx.scale(dpr, dpr); // Scale based on device pixel ratio
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+      });
+
+      const ripples = [];
+
+      // Spawn ripple with 3 circles, each slightly larger and fading
+      function spawnRipple(
+        x = Math.random() * canvas.width,
+        y = Math.random() * canvas.height
+      ) {
+        for (let i = 0; i < 3; i++) {
+          ripples.push({ x, y, radius: i * 10, alpha: 1 - i * 0.2 });
+        }
+      }
+
+      // Auto spawn 3 ripples initially, at random positions
+      for (let i = 0; i < 3; i++) {
+        spawnRipple();
+      }
+
+      // Auto spawn ripple every 4 seconds at random position
+      setInterval(() => {
+        spawnRipple();
+      }, 4000);
+
+      canvas.addEventListener("click", (e) => {
+        spawnRipple(e.clientX, e.clientY);
+        if (Math.random() < 0.6) {
+          createBoat(e.clientX, e.clientY);
+        }
+      });
+
+      const boatImgs = [];
+      const boatUrls = [
+        "https://cdn.glitch.global/6400ae9c-c532-4cbf-8bde-267682b60af2/1.png?v=1748909471342",
+        "https://cdn.glitch.global/6400ae9c-c532-4cbf-8bde-267682b60af2/2.png?v=1748909492702",
+        "https://cdn.glitch.global/6400ae9c-c532-4cbf-8bde-267682b60af2/3.png?v=1748909495136",
+        "https://cdn.glitch.global/6400ae9c-c532-4cbf-8bde-267682b60af2/4.png?v=1748909499456",
+      ];
+
+      boatUrls.forEach((url) => {
+        const img = new Image();
+        img.src = url;
+        boatImgs.push(img);
+      });
+
+      const boats = [];
+      
+     function getSkyGradient(time) {
+  const cycleDuration = 60; // seconds
+  const t = (time / 1000) % cycleDuration;
+  const progress = t / cycleDuration;
+
+  let topColor, bottomColor;
+
+  if (progress < 0.2) {
+    // Early Morning
+    topColor = "#2c3e50";
+    bottomColor = "#2980b9";
+  } else if (progress < 0.4) {
+    // Morning
+    topColor = "#a0d8ef";
+    bottomColor = "#50a6c8";
+  } else if (progress < 0.6) {
+    // Afternoon
+    topColor = "#69c2ff";
+    bottomColor = "#0077be";
+  } else if (progress < 0.8) {
+    // Evening
+    topColor = "#ff6e7f";
+    bottomColor = "#bfe9ff";
+  } else {
+    // Night
+    topColor = "#1a2a6c";
+    bottomColor = "#0f2027";
+  }
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, topColor);
+  gradient.addColorStop(1, bottomColor);
+
+  return gradient;
+}
+
+      
+
+      // Create boat object
+      // dropping: true while dropping from above
+      // landed: true after drop lands, starts waggle timer
+      // waggleTime: how long waggle has been going (ms)
+      function createBoat(
+        x = Math.random() * canvas.width,
+        y = Math.random() * canvas.height
+      ) {
+        const scale = 0.5 + Math.random() * 0.4;
+        const boatImg = boatImgs[Math.floor(Math.random() * boatImgs.length)];
+        const angle = Math.random() * 2 * Math.PI;
+        boats.push({
+          x,
+          y: y - 100,
+          targetY: y,
+          vx: 0,
+          vy: 0,
+          scale,
+          floatOffset: Math.random() * Math.PI * 2,
+          life: 0,
+          img: boatImg,
+          dropping: true,
+          landed: false,
+          waggleTime: 0,
+        });
+      }
+
+      let loadedCount = 0;
+      boatImgs.forEach((img) => {
+        img.onload = () => {
+          loadedCount++;
+          if (loadedCount === boatImgs.length) {
+            animate();
+          }
+        };
+        img.onerror = () =>
+          console.error("Failed to load one of the boat images.");
+      });
+
+      function drawWater() {
+        const time = Date.now() * 0.001;
+
+        const waveLayers = 6;
+
+        // Base water background gradient
+        ctx.fillStyle = getSkyGradient(Date.now());
+
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // ---------- FIRST WAVY BAND ----------
+        for (let j = 0; j < waveLayers; j++) {
+          const waveSpeed = 0.4 + j * 0.1;
+          const amplitude = 6 + j * 2;
+          const frequency = 0.004 + j * 0.0008;
+          const verticalOffset = canvas.height * 0.3 + j * 8;
+
+          ctx.beginPath();
+          for (let x = 0; x <= canvas.width; x += 2) {
+            const y =
+              verticalOffset +
+              Math.sin(x * frequency + time * waveSpeed) * amplitude;
+            ctx.lineTo(x, y);
+          }
+          ctx.lineTo(canvas.width, canvas.height);
+          ctx.lineTo(0, canvas.height);
+          ctx.closePath();
+
+          const opacity = 0.03 + (j / waveLayers) * 0.07;
+          ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+          ctx.fill();
+        }
+
+        // ---------- SECOND WAVY BAND ----------
+        for (let j = 0; j < waveLayers; j++) {
+          const waveSpeed = 0.35 + j * 0.12;
+          const amplitude = 5 + j * 2;
+          const frequency = 0.0035 + j * 0.0007;
+          const verticalOffset = canvas.height * 0.6 + j * 8;
+
+          ctx.beginPath();
+          for (let x = 0; x <= canvas.width; x += 2) {
+            const y =
+              verticalOffset +
+              Math.sin(x * frequency + time * waveSpeed + 1.5) * amplitude;
+            ctx.lineTo(x, y);
+          }
+          ctx.lineTo(canvas.width, canvas.height);
+          ctx.lineTo(0, canvas.height);
+          ctx.closePath();
+
+          const opacity = 0.025 + (j / waveLayers) * 0.05;
+          ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+          ctx.fill();
+        }
+
+        // Sparkles
+        const shimmerCount = 40;
+        for (let i = 0; i < shimmerCount; i++) {
+          const x = Math.random() * canvas.width;
+          const y = Math.random() * (canvas.height * 0.6);
+          const alpha = 0.02 + Math.random() * 0.03;
+          ctx.beginPath();
+          ctx.arc(x, y, 1 + Math.random() * 1.5, 0, 2 * Math.PI);
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+          ctx.fill();
+        }
+
+        // Ripples (enhanced fade and stroke)
+        for (let i = ripples.length - 1; i >= 0; i--) {
+          const ripple = ripples[i];
+          ripple.radius += 0.6;
+          ripple.alpha -= 0.003;
+          if (ripple.alpha <= 0) {
+            ripples.splice(i, 1);
+            continue;
+          }
+
+          ctx.beginPath();
+          ctx.arc(ripple.x, ripple.y, ripple.radius, 0, 2 * Math.PI);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${ripple.alpha})`;
+          ctx.lineWidth = 1.2 + (1 - ripple.alpha) * 2;
+          ctx.stroke();
+        }
+      }
+
+      function drawBoats() {
+        const dt = 16; // approx frame duration in ms
+
+        for (let i = boats.length - 1; i >= 0; i--) {
+          const boat = boats[i];
+
+          if (boat.dropping) {
+            boat.y += 3;
+            if (boat.y >= boat.targetY) {
+              boat.y = boat.targetY;
+              boat.dropping = false;
+              boat.landed = true;
+              boat.waggleTime = 0;
+              boat.vx = 0;
+              boat.vy = 0;
+            }
+          } else if (boat.landed) {
+            // Waggle in place for ~2 seconds (2000 ms)
+            boat.waggleTime += dt;
+            // Waggle by small sinusoidal movement horizontally and vertically
+            const waggleAmplitude = 3;
+            const waggleSpeed = 0.005; // radians per ms
+            boat.x +=
+              Math.sin(boat.waggleTime * waggleSpeed) * waggleAmplitude * 0.1;
+            boat.y +=
+              Math.cos(boat.waggleTime * waggleSpeed) * waggleAmplitude * 0.1;
+
+            if (boat.waggleTime >= 2000) {
+              boat.landed = false; // stop waggle, start ripple interaction
+              boat.life = 0; // reset life for floating effect
+            }
+          } else {
+            // Interact with ripples pushing the boat gently
+            for (const ripple of ripples) {
+              const dx = ripple.x - boat.x;
+              const dy = ripple.y - boat.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < ripple.radius + 20 && dist > ripple.radius - 20) {
+                const force = 0.02; // gentle push force
+                boat.vx -= (dx / dist) * force;
+                boat.vy -= (dy / dist) * force;
+              }
+            }
+            // Add float effect with sine waves
+            boat.x +=
+              boat.vx + Math.sin(boat.life / 20 + boat.floatOffset) * 0.2;
+            boat.y +=
+              boat.vy + Math.cos(boat.life / 20 + boat.floatOffset) * 0.2;
+            boat.life++;
+
+            // Slow down velocity gradually (friction)
+            boat.vx *= 0.98;
+            boat.vy *= 0.98;
+          }
+
+          // Remove boats if out of bounds
+          if (
+            boat.x < -100 ||
+            boat.x > canvas.width + 100 ||
+            boat.y < -100 ||
+            boat.y > canvas.height + 100
+          ) {
+            boats.splice(i, 1);
+            continue;
+          }
+
+          const w = 128 * boat.scale;
+          const h = 128 * boat.scale;
+
+          ctx.save();
+          ctx.translate(boat.x, boat.y);
+          ctx.drawImage(boat.img, -w / 2, -h / 2, w, h);
+          ctx.restore();
+        }
+      }
+
+      function animate() {
+        drawWater();
+        drawBoats();
+        requestAnimationFrame(animate);
+      }
+    </script>
+    <div class="reflection-overlay"></div>
+  </body>
+</html>
